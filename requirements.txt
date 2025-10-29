@@ -1,3 +1,3 @@
-```txt
 requests
 python-dotenv
+streamlit
