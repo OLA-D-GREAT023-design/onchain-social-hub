@@ -15,8 +15,24 @@ def get(url, params):
         time.sleep(0.2)
 
 def portfolio(address):
-    p = next(get(f"{BASE}/wallets/{address}/portfolio", {"currency": "usd"}))
-    return p["data"]["attributes"].get("total_value", 0), [x["id"] for x in p["data"]["relationships"]["positions"]["data"]]
+    try:
+        p = next(get(f"{BASE}/wallets/{address}/portfolio", {"currency": "usd"}))
+        
+        # Make sure 'data' exists
+        if not isinstance(p, dict) or "data" not in p:
+            print(f"⚠️ No data found for wallet: {address}")
+            return 0, []
+
+        attributes = p["data"].get("attributes", {})
+        relationships = p["data"].get("relationships", {})
+        total_value = attributes.get("total_value", 0)
+        assets = [x["id"] for x in relationships.get("positions", {}).get("data", [])]
+
+        return total_value, assets
+
+    except Exception as e:
+        print(f"❌ Error fetching portfolio for {address}: {e}")
+        return 0, []
 
 def tx_count(address):
     return sum(1 for _ in get(f"{BASE}/wallets/{address}/transactions", {"limit": 100}))
