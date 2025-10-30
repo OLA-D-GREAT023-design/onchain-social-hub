@@ -28,11 +28,24 @@ def fetch_data(url, params):
         params["page[token]"] = token
         time.sleep(0.2)
 
-def get_portfolio(address):
-    data = next(fetch_data(f"{BASE}/wallets/{address}/portfolio", {"currency": "usd"}))
-    value = data["data"]["attributes"].get("total_value", 0)
-    assets = [pos["id"] for pos in data["data"]["relationships"]["positions"]["data"]]
-    return value, assets
+def portfolio(address):
+    try:
+        p = next(get(f"{BASE}/wallets/{address}/portfolio", {"currency": "usd"}))
+        
+        # --- FIX: Safely handle unexpected API responses ---
+        if not isinstance(p, dict) or "data" not in p:
+            st.warning(f"No portfolio data found for {address}")
+            return 0, []
+
+        attributes = p["data"].get("attributes", {})
+        relationships = p["data"].get("relationships", {})
+        total_value = attributes.get("total_value", 0)
+        assets = [x["id"] for x in relationships.get("positions", {}).get("data", [])]
+        return total_value, assets
+
+    except Exception as e:
+        st.warning(f"Error fetching portfolio for {address}: {e}")
+        return 0, []
 
 def get_tx_count(address):
     return sum(1 for _ in fetch_data(f"{BASE}/wallets/{address}/transactions", {"limit": 100}))
